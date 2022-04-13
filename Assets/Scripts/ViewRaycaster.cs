@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,133 +17,122 @@ public class ViewRaycaster : MonoBehaviour
 
     Dictionary<float, AreaScanResult> scanData = new Dictionary<float, AreaScanResult>();
 
-    private Dictionary<float, AreaScanResult> Do360Scan(int checks)
+    private Dictionary<float, AreaScanInformation> DoHeightAngleScan(int checks)
     {
-        Dictionary<float, AreaScanResult> scan = new Dictionary<float, AreaScanResult>();
+        Dictionary<float, AreaScanInformation> scan = new Dictionary<float, AreaScanInformation>();
         for (int i = 0; i < checks; i++)
         {
-            float angle = (i / (float)checks) * 360f;
+            float angleX = (i / (float)checks) * 360f;
+            float angleUp = 0f;
 
-            Vector3 hit = DoRaycast(transform.position, angle, maxShadowDistance, debug: true) - transform.position;
+            RaycastHitResult lastResult = new RaycastHitResult() { HasHit = true };
 
-            AreaScanResult result = new AreaScanResult { Hit = hit, Distance = Mathf.Abs(hit.magnitude) };
+            while (angleUp < 45f)
+            {
+                angleUp += 4.5f;
+                RaycastHitResult newResult = DoRaycast(transform.position, angleX, maxShadowDistance, upAngle: angleUp);
 
-            scan.Add(angle, result);
+                if (!newResult.HasHit)
+                    break;
+
+                if (angleUp >= 45f)
+                {
+                    angleUp = 0f;
+                    break;
+                }
+            }
+
+            Vector3 local = lastResult.Point - transform.position;
+
+
+            AreaScanInformation result = new AreaScanInformation() { Value = new AreaScanResult() { Hit = local, Distance = Mathf.Abs(local.magnitude) }, Angle = angleUp };
+
+            scan.Add(angleX, result);
         }
 
         return scan;
     }
-    private Dictionary<float, AreaScanResult> DoDetailScan(Dictionary<float, AreaScanResult> scanData, List<AreaScanDetail> extremes)
+
+    private Dictionary<float, AreaScanResult> Do360Scan(int checks, Dictionary<float, AreaScanInformation> additionalHeigtSamples = null)
     {
-        foreach (AreaScanDetail detail in extremes)
+        Dictionary<float, AreaScanResult> scan = new Dictionary<float, AreaScanResult>();
+
+        for (int i = 0; i < checks; i++)
         {
-            float angle = Mathf.LerpAngle(detail.StartAngle, detail.EndAngle, 0.5f);
-            Vector3 hit = DoRaycast(transform.position, angle, maxShadowDistance, debug: true) - transform.position;
-            if (!scanData.ContainsKey(angle))
-                scanData.Add(angle, new AreaScanResult { Hit = hit, Distance = Mathf.Abs(hit.magnitude) });
+            float angleX = (i / (float)checks) * 360f;
+            float angleHeight = additionalHeigtSamples == null ? 0 : Sample(additionalHeigtSamples, angleX) * 0.75f;
+
+            Vector3 global = DoRaycast(transform.position, angleX, angleHeight, maxShadowDistance);
+            Vector3 local = global - transform.position;
+
+            AreaScanResult result = new AreaScanResult { Hit = local, Distance = Mathf.Abs(local.magnitude) };
+
+            scan.Add(angleX, result);
         }
 
-        return scanData;
+        return scan;
+    }
+
+    private float Sample(Dictionary<float, AreaScanInformation> additionalHeigtSamples, float angleX)
+    {
+        float sampleAngleMaxDifference = 360 / additionalHeigtSamples.Count;
+
+        float[] angles = additionalHeigtSamples.Keys.ToArray();
+
+        for (int i = 0; i < additionalHeigtSamples.Count; i++)
+        {
+            bool last = i == additionalHeigtSamples.Count - 1;
+
+            float previousX = angles[i];
+            float nextX = angles[last ? 0 : i + 1];
+
+            float prevDelta = Mathf.Abs(Mathf.DeltaAngle(angleX, previousX));
+            float nextDelta = Mathf.Abs(Mathf.DeltaAngle(angleX, nextX));
+
+            if (prevDelta < sampleAngleMaxDifference && nextDelta < sampleAngleMaxDifference)
+            {
+                float lerp = prevDelta / sampleAngleMaxDifference;
+
+                float prevHeight = additionalHeigtSamples[previousX].Angle;
+                float nextHeight = additionalHeigtSamples[nextX].Angle;
+                float height = Mathf.LerpAngle(prevHeight, nextHeight, lerp);
+
+                return height * 1f;
+            }
+            else if (prevDelta < 1f)
+            {
+                return additionalHeigtSamples[previousX].Angle;
+            }
+            else if (nextDelta < 1f)
+            {
+                return additionalHeigtSamples[nextX].Angle;
+            }
+        }
+
+
+        Debug.Log($"angleX = { angleX }");
+
+        return 0f;
+    }
+    public float Remap(float value, float from1, float to1, float from2, float to2)
+    {
+        return (value - from1) / (to1 - from1) * (to2 - from2) + from2;
     }
 
     // Update is called once per frame
     void Update()
     {
         raycastCounterDebug = 0;
-
         scanData.Clear();
-        scanData = Do360Scan(checkAmount360);
 
-        //List<AreaScanDetail> extremes = new List<AreaScanDetail>();
-        //
-        //for (int i = 0; i < detailScanDepth; i++)
-        //{
-        //    extremes = FetchExtremesByDistanceToOrigin(scanData);
-        //    scanData = DoDetailScan(scanData, extremes);
-        //}
+        Dictionary<float, AreaScanInformation> additionalHeigtSamples = DoHeightAngleScan(36);
+        scanData = Do360Scan(checkAmount360, additionalHeigtSamples);
 
         DrawDistanceCurve(scanData);
         CreatePositiveMesh((scanData.OrderBy(scan => scan.Key).ToArray()).Select(foo => foo.Value.Hit).ToArray());
     }
 
-
-    private List<AreaScanDetail> FetchExtremesByDistanceToOrigin(Dictionary<float, AreaScanResult> scanData)
-    {
-        List<AreaScanDetail> results = new List<AreaScanDetail>();
-        AreaScanInformation before = null;
-
-        foreach (KeyValuePair<float, AreaScanResult> current in scanData.OrderBy(a => a.Key))
-        {
-            if (before != null)
-            {
-                bool bothAir = before.Value.Distance > 19 && current.Value.Distance > 19;
-                bool sharesXOrY = (before.Value.Hit.x == current.Value.Hit.x || before.Value.Hit.y == current.Value.Hit.y);
-                float distanceDifference = Mathf.Abs(before.Value.Distance - current.Value.Distance);
-                float hitDifference = Vector2.Distance(before.Value.Hit, current.Value.Hit);
-
-                if (!bothAir && !sharesXOrY && (distanceDifference > minSignificantDistance || hitDifference > minSignificantHitDifference))
-                {
-                    AreaScanDetail detail = new AreaScanDetail();
-                    detail.StartAngle = before.Angle;
-                    detail.EndAngle = current.Key;
-                    results.Add(detail);
-                }
-            }
-
-            before = new AreaScanInformation() { Angle = current.Key, Value = current.Value };
-        }
-
-        return results;
-    }
-
-
-    private void CreateNegativeMesh(Vector3[] vector2)
-    {
-        Mesh mesh;
-        List<Vector3> newVertices = new List<Vector3>();
-        List<int> newTriangles = new List<int>();
-
-        mesh = GetComponent<MeshFilter>().mesh;
-
-        for (int i = 0; i < vector2.Length; i++)
-        {
-            int index = i * 2;
-
-            Vector3 fix = new Vector3(vector2[i].x, vector2[i].y, vector2[i].z);
-            fix = fix.normalized * maxShadowDistance;
-            newVertices.Add(new Vector3(fix.x, fix.y, fix.z));
-            newVertices.Add(new Vector3(vector2[i].x, vector2[i].y, vector2[i].z));
-
-            if (index > 0 && index < vector2.Length * 2)
-            {
-                newTriangles.Add(index);
-                newTriangles.Add(index + 1);
-                newTriangles.Add(index - 2);
-                newTriangles.Add(index + 1);
-                newTriangles.Add(index - 1);
-                newTriangles.Add(index - 2);
-            }
-
-            if (i > 0)
-            {
-                Debug.DrawLine(transform.position + new Vector3(vector2[i - 1].x, 0, vector2[i - 1].y), transform.position + new Vector3(vector2[i].x, 0, vector2[i].y));
-            }
-        }
-
-        newTriangles.Add(newVertices.Count - 2);
-        newTriangles.Add(newVertices.Count - 1);
-        newTriangles.Add(1);
-        newTriangles.Add(newVertices.Count - 2);
-        newTriangles.Add(1);
-        newTriangles.Add(0);
-
-        mesh.Clear();
-        mesh.vertices = newVertices.ToArray();
-        mesh.triangles = newTriangles.ToArray();
-        mesh.Optimize();
-    }
-
-    private void CreatePositiveMesh(Vector3[] vector2)
+    private void CreatePositiveMesh(Vector3[] points)
     {
         Mesh mesh;
         List<Vector3> newVertices = new List<Vector3>();
@@ -152,13 +142,13 @@ public class ViewRaycaster : MonoBehaviour
 
         newVertices.Add(Vector3.zero);
 
-        for (int i = 0; i < vector2.Length; i++)
+        for (int i = 0; i < points.Length; i++)
         {
             int index = i;
 
-            newVertices.Add(new Vector3(vector2[i].x, vector2[i].y, vector2[i].z));
+            newVertices.Add(new Vector3(points[i].x, points[i].y, points[i].z));
 
-            if (index > 1 && index < vector2.Length)
+            if (index > 1 && index < points.Length)
             {
                 newTriangles.Add(0);
                 newTriangles.Add(index - 1);
@@ -167,12 +157,12 @@ public class ViewRaycaster : MonoBehaviour
 
             if (i > 0)
             {
-                Debug.DrawLine(transform.position + new Vector3(vector2[i - 1].x, 0, vector2[i - 1].y), transform.position + new Vector3(vector2[i].x, 0, vector2[i].y));
+                Debug.DrawLine(transform.position + new Vector3(points[i - 1].x, 0, points[i - 1].y), transform.position + new Vector3(points[i].x, 0, points[i].y));
             }
         }
 
         newTriangles.Add(0);
-        newTriangles.Add(vector2.Length - 1);
+        newTriangles.Add(points.Length - 1);
         newTriangles.Add(1);
 
         mesh.Clear();
@@ -181,14 +171,26 @@ public class ViewRaycaster : MonoBehaviour
         mesh.Optimize();
     }
 
-    Vector3 DoRaycast(Vector3 origin, float angle, float length, bool debug = false, int debugColorIndex = 0)
+    RaycastHitResult DoRaycast(Vector3 origin, float angle, float length, bool debug = false, int debugColorIndex = 0, float upAngle = 0f)
     {
-        Vector3 dir = Quaternion.Euler(0, angle, 0) * Vector3.forward + Vector3.down * viewFalloff;
+        Vector3 dir = ((Quaternion.Euler(0, angle, 0) * Vector3.forward) + Mathf.Sin(upAngle / Mathf.Rad2Deg) * Vector3.up).normalized;
         Debug.DrawRay(origin, dir * 1f);
         return DoRaycast(origin, dir, length, debug, debugColorIndex);
     }
+    Vector3 DoRaycast(Vector3 origin, float angle, float upAngle, float length)
+    {
+        Vector3 dir = ((Quaternion.Euler(0, angle, 0) * Vector3.forward) + Mathf.Sin(upAngle / Mathf.Rad2Deg) * Vector3.up).normalized;
+        Debug.DrawRay(origin, dir * 1f);
 
-    Vector3 DoRaycast(Vector3 origin, Vector3 dir, float length, bool debug = false, int debugColorIndex = 0)
+        RaycastHitResult result = DoRaycast(origin, dir, length, false);
+
+        if (result.HasHit)
+            return result.Point;
+
+        return origin + dir * length;
+    }
+
+    RaycastHitResult DoRaycast(Vector3 origin, Vector3 dir, float length, bool debug = false, int debugColorIndex = 0)
     {
         raycastCounterDebug++;
 
@@ -199,7 +201,7 @@ public class ViewRaycaster : MonoBehaviour
             if (debug)
                 Debug.DrawLine(origin, hit.point, (debugColorIndex == 0) ? Color.red : Color.green);
 
-            return hit.point;
+            return new RaycastHitResult() { HasHit = true, Point = hit.point };
         }
         else
         {
@@ -207,7 +209,7 @@ public class ViewRaycaster : MonoBehaviour
                 Debug.DrawLine(origin, origin + (dir * length), (debugColorIndex == 0) ? Color.blue : Color.yellow);
         }
 
-        return origin + (dir * length);
+        return new RaycastHitResult() { HasHit = false, Point = hit.point };
     }
     private void DrawDistanceCurve(Dictionary<float, AreaScanResult> scanData)
     {
@@ -218,6 +220,13 @@ public class ViewRaycaster : MonoBehaviour
         }
     }
 }
+
+public struct RaycastHitResult
+{
+    public bool HasHit;
+    public Vector3 Point;
+}
+
 public class AreaScanResult
 {
     public Vector3 Hit;

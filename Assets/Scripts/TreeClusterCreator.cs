@@ -76,7 +76,11 @@ public class TreeClusterCreator : MonoBehaviour
 
         foreach (TreeCluster cluster in this.clusters)
         {
-            float distance = Mathf.Min(Vector2.Distance(pos, cluster.Hull.Bounds.Min), Vector2.Distance(pos, cluster.Hull.Bounds.MinMax), Vector2.Distance(pos, cluster.Hull.Bounds.Max), Vector2.Distance(pos, cluster.Hull.Bounds.MaxMin));
+            float distance = Mathf.Min(
+                Vector2.Distance(pos, Vector2Util.GetClosestPointOnLineSegment(new Vector2Util.V2Line(cluster.Hull.Bounds.Min, cluster.Hull.Bounds.MinMax), pos)),
+                Vector2.Distance(pos, Vector2Util.GetClosestPointOnLineSegment(new Vector2Util.V2Line(cluster.Hull.Bounds.MinMax, cluster.Hull.Bounds.Max), pos)),
+                Vector2.Distance(pos, Vector2Util.GetClosestPointOnLineSegment(new Vector2Util.V2Line(cluster.Hull.Bounds.Max, cluster.Hull.Bounds.MaxMin), pos)),
+                Vector2.Distance(pos, Vector2Util.GetClosestPointOnLineSegment(new Vector2Util.V2Line(cluster.Hull.Bounds.MaxMin, cluster.Hull.Bounds.Min), pos)));
 
             if (distance < maxDistance)
                 clusters.Add(cluster);

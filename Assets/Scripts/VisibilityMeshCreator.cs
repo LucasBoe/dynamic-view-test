@@ -20,21 +20,9 @@ public class VisibilityMeshCreator : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
-    }
-
-    private void OnDrawGizmos()
-    {
-        Gizmos.DrawWireSphere(transform.position, innerRadius);
-
         clustersInRadius = treeClusters.GetClustersInsideRange(transform.position.ToV2(), innerRadius + outerRadius);
-        foreach (TreeCluster cluster in clustersInRadius)
-        {
-            cluster.Hull.GizmoDrawBounds();
-        }
 
-
-        int raycastAmount = 32;
+        int raycastAmount = 128;
         int raycastSize = 10;
 
         List<Vector3> viewAreaPoints = new List<Vector3>();
@@ -47,7 +35,6 @@ public class VisibilityMeshCreator : MonoBehaviour
 
 
             Vector3 p = transform.position + new Vector3(x, raycastSize, y);
-            Vector3 p2;
 
             Ray ray = new Ray(p, Vector3.down);
 
@@ -61,8 +48,8 @@ public class VisibilityMeshCreator : MonoBehaviour
                 p = new Vector3(p.x, p.y - raycastSize, p.z);
 
                 Vector2 startP = transform.position.ToV2();
-                float r = outerRadius * innerRadius;
-                Vector2 targetP = p.ToV2() + new Vector2(x, y).normalized * outerRadius * innerRadius;
+                float r = outerRadius + innerRadius;
+                Vector2 targetP = transform.position.ToV2() + new Vector2(x, y).normalized * r;
 
 
                 V2Line line = new V2Line(startP, targetP);
@@ -75,14 +62,21 @@ public class VisibilityMeshCreator : MonoBehaviour
                 p = transform.position + new Vector3(x, 0, y).normalized * r + r * falloff * Vector3.down;
             }
 
-            Gizmos.DrawLine(transform.position, p);
-            Gizmos.DrawSphere(p, 0.15f);
-
             p -= transform.position;
             viewAreaPoints.Add(p);
         }
 
         CreatePositiveMesh(viewAreaPoints.ToArray());
+    }
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.DrawWireSphere(transform.position, innerRadius);
+        foreach (TreeCluster cluster in clustersInRadius)
+        {
+            cluster.Hull.GizmoDrawBounds();
+        }
+
     }
 
     private void CreatePositiveMesh(Vector3[] points)

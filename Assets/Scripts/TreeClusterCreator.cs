@@ -70,6 +70,21 @@ public class TreeClusterCreator : MonoBehaviour
         }
     }
 
+    public List<TreeCluster> GetClustersInsideRange(Vector2 pos, float maxDistance)
+    {
+        List<TreeCluster> clusters = new List<TreeCluster>();
+
+        foreach (TreeCluster cluster in this.clusters)
+        {
+            float distance = Mathf.Min(Vector2.Distance(pos, cluster.Hull.Bounds.Min), Vector2.Distance(pos, cluster.Hull.Bounds.MinMax), Vector2.Distance(pos, cluster.Hull.Bounds.Max), Vector2.Distance(pos, cluster.Hull.Bounds.MaxMin));
+
+            if (distance < maxDistance)
+                clusters.Add(cluster);
+        }
+
+        return clusters;
+    }
+
     private bool DistanceCheck(Transform startTree, Transform tree)
     {
         Vector2 p1 = new Vector2(tree.position.x, tree.position.z);
@@ -98,19 +113,8 @@ public class TreeClusterCreator : MonoBehaviour
             Hull hull = cluster.Hull;
             if (hull != null && hull.HullPoints != null)
             {
-                Gizmos.color = Color.red;
-
-                for (int i = 0; i < hull.HullPoints.Count; i++)
-                {
-                    int ii = (i == 0 ? hull.HullPoints.Count : i) - 1;
-                    Gizmos.DrawLine(ToV3(hull.HullPoints[ii]), ToV3(hull.HullPoints[i]));
-                }
-
-                Gizmos.color = Color.yellow;
-                Gizmos.DrawLine(ToV3(hull.Bounds.Min.x, hull.Bounds.Min.y), ToV3(hull.Bounds.Min.x, hull.Bounds.Max.y));
-                Gizmos.DrawLine(ToV3(hull.Bounds.Min.x, hull.Bounds.Max.y), ToV3(hull.Bounds.Max.x, hull.Bounds.Max.y));
-                Gizmos.DrawLine(ToV3(hull.Bounds.Max.x, hull.Bounds.Max.y), ToV3(hull.Bounds.Max.x, hull.Bounds.Min.y));
-                Gizmos.DrawLine(ToV3(hull.Bounds.Max.x, hull.Bounds.Min.y), ToV3(hull.Bounds.Min.x, hull.Bounds.Min.y));
+                hull.GizmoDrawHull();
+                hull.GizmoDrawBounds();
             }
         }
     }
@@ -119,15 +123,6 @@ public class TreeClusterCreator : MonoBehaviour
     {
         UnityEngine.Random.InitState(index);
         Gizmos.color = new Color[] { Color.green, Color.blue, Color.cyan, Color.magenta }[UnityEngine.Random.Range(0, 4)];
-    }
-    public Vector3 ToV3(float x, float y, float z = 10f)
-    {
-        return ToV3(new Vector2(x, y), z);
-    }
-
-    public Vector3 ToV3(Vector2 vector2, float y = 10f)
-    {
-        return new Vector3(vector2.x, y, vector2.y);
     }
 }
 

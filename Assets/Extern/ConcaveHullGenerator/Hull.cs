@@ -1,4 +1,5 @@
 ﻿using Assets.src;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -101,6 +102,27 @@ namespace ConcaveHull
             return HullConcaveEdges;
         }
 
+        public void GizmoDrawHull()
+        {
+            Gizmos.color = Color.red;
+
+            for (int i = 0; i < HullPoints.Count; i++)
+            {
+                int ii = (i == 0 ? HullPoints.Count : i) - 1;
+                Gizmos.DrawLine(Vector2Util.ToV3(HullPoints[ii]), Vector2Util.ToV3(HullPoints[i]));
+            }
+
+        }
+
+        public void GizmoDrawBounds()
+        {
+            Gizmos.color = Color.yellow;
+            Gizmos.DrawLine(Vector2Util.ToV3(Bounds.Min.x, Bounds.Min.y), Vector2Util.ToV3(Bounds.Min.x, Bounds.Max.y));
+            Gizmos.DrawLine(Vector2Util.ToV3(Bounds.Min.x, Bounds.Max.y), Vector2Util.ToV3(Bounds.Max.x, Bounds.Max.y));
+            Gizmos.DrawLine(Vector2Util.ToV3(Bounds.Max.x, Bounds.Max.y), Vector2Util.ToV3(Bounds.Max.x, Bounds.Min.y));
+            Gizmos.DrawLine(Vector2Util.ToV3(Bounds.Max.x, Bounds.Min.y), Vector2Util.ToV3(Bounds.Min.x, Bounds.Min.y));
+        }
+
         public List<Vector2> sortVerticies(List<Vector2> points)
         {
             // get centroid
@@ -124,8 +146,11 @@ namespace ConcaveHull
         }
     }
 
+    [System.Serializable]
     public class Bounds2D
     {
         public Vector2 Min, Max;
+        public Vector2 MinMax => new Vector2(Min.x, Max.y);
+        public Vector2 MaxMin => new Vector2(Max.x, Min.y);
     }
 }

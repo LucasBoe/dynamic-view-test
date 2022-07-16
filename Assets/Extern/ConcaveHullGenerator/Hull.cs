@@ -120,13 +120,13 @@ namespace ConcaveHull
             IterateToFindRimPoint(position, startPoinIndex, startAngle, rimPoints, -1);
 
             if (rimPoints.Smallest != null)
-                Debug.DrawLine(closest.ToV3(), (position + rimPoints.Smallest.OnPoint).ToV3(), Color.green);
+                Debug.DrawLine(closest.ToV3(), (position + rimPoints.Smallest.Point).ToV3(), Color.green);
 
             if (rimPoints.Biggest != null)
-                Debug.DrawLine(closest.ToV3(), (position + rimPoints.Biggest.OnPoint).ToV3(), Color.red);
+                Debug.DrawLine(closest.ToV3(), (position + rimPoints.Biggest.Point).ToV3(), Color.red);
 
             if (rimPoints.Smallest != null && rimPoints.Biggest != null)
-                Debug.DrawLine((position + rimPoints.Biggest.OnPoint).ToV3(), (position + rimPoints.Smallest.OnPoint).ToV3(), Color.blue);
+                Debug.DrawLine((position + rimPoints.Biggest.Point).ToV3(), (position + rimPoints.Smallest.Point).ToV3(), Color.blue);
 
             return rimPoints;
         }
@@ -134,7 +134,7 @@ namespace ConcaveHull
         private void IterateToFindRimPoint(Vector2 position, int startPoint, float startAngle, RimPoints rimPoints, int iDir)
         {
             RimPoint potentialRimPoint = new RimPoint();
-            potentialRimPoint.OnAngle = startAngle;
+            potentialRimPoint.Angle = startAngle;
 
             for (int i = 1; i < HullPoints.Count; i++)
             {
@@ -142,14 +142,13 @@ namespace ConcaveHull
 
                 float angle = Vector2Util.GetAngleFromTo(position, point) * Mathf.Rad2Deg;
                 float angleDifference = Mathf.DeltaAngle(angle, startAngle);
-                float biggestAngleDifference = Mathf.DeltaAngle(potentialRimPoint.OnAngle, startAngle);
+                float biggestAngleDifference = Mathf.DeltaAngle(potentialRimPoint.Angle, startAngle);
 
                 if (iDir == 1 && angleDifference < biggestAngleDifference
                     || iDir == -1 && angleDifference > biggestAngleDifference)
                 {
-                    potentialRimPoint.OnAngle = angle;
-                    potentialRimPoint.OnPoint = point - position;
-                    potentialRimPoint.OffAngle = angle + iDir;
+                    potentialRimPoint.Angle = angle;
+                    potentialRimPoint.Point = point - position;
 
                 }
             }
@@ -159,7 +158,7 @@ namespace ConcaveHull
             else
                 rimPoints.Smallest = potentialRimPoint;
 
-            if (potentialRimPoint.OnPoint != Vector2.zero)
+            if (potentialRimPoint.Point != Vector2.zero)
                 rimPoints.Empty = false;
         }
 
@@ -223,8 +222,8 @@ namespace ConcaveHull
     [System.Serializable]
     public class RimPoint
     {
-        public float OnAngle, OffAngle;
-        public Vector2 OnPoint, OffPoint;
+        public float Angle;
+        public Vector2 Point;
     }
     [System.Serializable]
     public class RimPoints

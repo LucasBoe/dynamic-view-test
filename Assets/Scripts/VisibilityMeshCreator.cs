@@ -49,8 +49,8 @@ public class VisibilityMeshCreator : MonoBehaviour
             }
         }
 
-        List<RimPoints> openPoints = rimPoints.OrderBy(p => GetAngleFromTo(Vector2.zero, p.Smallest.OnPoint)).ToList();
-        List<RimPoints> closePoints = rimPoints.OrderBy(p => GetAngleFromTo(Vector2.zero, p.Biggest.OnPoint)).ToList();
+        List<RimPoints> openPoints = rimPoints.OrderBy(p => GetAngleFromTo(Vector2.zero, p.Smallest.Point)).ToList();
+        List<RimPoints> closePoints = rimPoints.OrderBy(p => GetAngleFromTo(Vector2.zero, p.Biggest.Point)).ToList();
 
         //debug
         openAngles.Clear();
@@ -58,12 +58,12 @@ public class VisibilityMeshCreator : MonoBehaviour
 
         foreach (RimPoints point in openPoints)
         {
-            openAngles.Add(point.Smallest.OnAngle);
+            openAngles.Add(point.Smallest.Angle);
         }
 
         foreach (RimPoints point in closePoints)
         {
-            closeAngles.Add(point.Biggest.OnAngle);
+            closeAngles.Add(point.Biggest.Angle);
         }
 
         List<Vector3> meshPoints = new List<Vector3>();
@@ -80,8 +80,8 @@ public class VisibilityMeshCreator : MonoBehaviour
             RimPoints nextToOpen = GetNext(openPoints, angle, small: true);
             RimPoints nextToClose = GetNext(closePoints, angle, small: false);
 
-            float nextOpenAngle = nextToOpen == null ? float.MaxValue : nextToOpen.Smallest.OnAngle;
-            float nextCloseAngle = nextToClose == null ? float.MaxValue : nextToClose.Biggest.OnAngle;
+            float nextOpenAngle = nextToOpen == null ? float.MaxValue : nextToOpen.Smallest.Angle;
+            float nextCloseAngle = nextToClose == null ? float.MaxValue : nextToClose.Biggest.Angle;
 
             bool nextIsOpen = (nextOpenAngle < nextCloseAngle) && nextToOpen != null;
             bool nextIsClose = (nextCloseAngle < nextOpenAngle) && nextToClose != null;
@@ -96,33 +96,37 @@ public class VisibilityMeshCreator : MonoBehaviour
 
                 if (nextIsOpen)
                 {
-                    if (!IsObstructed(obstructions, nextToOpen.Smallest))
+                    RimPoint next = nextToOpen.Smallest;
+
+                    if (!IsObstructed(obstructions, next))
                     {
-                        meshPoints.Add(CheckForPointAtAngle((nextToOpen.Smallest.OnAngle) - 1f));
+                        meshPoints.Add(CheckForPointAtAngle((next.Angle) - 0.1f));
                         Debug.DrawLine(transform.position + meshPoints.Last(), transform.position, Color.cyan);
 
-                        float distance = Mathf.Min(nextToOpen.Smallest.OnPoint.magnitude, innerRadius + outerRadius);
-                        meshPoints.Add(Get3DPointFromLength(nextToOpen.Smallest.OnAngle, distance) - transform.position);
+                        float distance = Mathf.Min(next.Point.magnitude, innerRadius + outerRadius);
+                        meshPoints.Add(Get3DPointFromLength(next.Angle, distance) - transform.position);
                     }
 
-                    angle = nextToOpen.Smallest.OnAngle + 0.5f;
+                    angle = next.Angle + 0.5f;
                     toClose.Add(nextToOpen);
                 }
                 else if (nextIsClose)
                 {
-                    if (!IsObstructed(obstructions, nextToClose.Biggest))
+                    RimPoint next = nextToClose.Biggest;
+
+                    if (!IsObstructed(obstructions, next))
                     {
-                        float distance = Mathf.Min(nextToClose.Biggest.OnPoint.magnitude, innerRadius + outerRadius);
-                        meshPoints.Add(Get3DPointFromLength(nextToClose.Biggest.OnAngle, distance) - transform.position);
-                        meshPoints.Add(CheckForPointAtAngle((nextToClose.Biggest.OnAngle) + 1f));
+                        float distance = Mathf.Min(next.Point.magnitude, innerRadius + outerRadius);
+                        meshPoints.Add(Get3DPointFromLength(next.Angle, distance) - transform.position);
+                        meshPoints.Add(CheckForPointAtAngle((next.Angle) + 0.1f));
                         Debug.DrawLine(transform.position + meshPoints.Last(), transform.position, Color.blue);
                     }
-                    angle = nextToClose.Biggest.OnAngle + 0.5f;
+                    angle = next.Angle + 0.5f;
                     toClose.Remove(nextToClose);
 
                 }
 
-                toClose = toClose.OrderBy(c => c.Biggest.OnAngle).ToList();
+                toClose = toClose.OrderBy(c => c.Biggest.Angle).ToList();
             }
         }
 
@@ -132,11 +136,12 @@ public class VisibilityMeshCreator : MonoBehaviour
 
     private bool IsObstructed(List<Obstruction> obstructions, RimPoint point)
     {
-        float distance = point.OnPoint.magnitude;
+        float distance = point.Point.magnitude;
         foreach (Obstruction obstruction in obstructions)
         {
-            bool insideRange = Mathf.DeltaAngle(point.OnAngle, obstruction.Start) < 0f && Mathf.DeltaAngle(point.OnAngle, obstruction.End) > 0f;
-            if (insideRange && distance > obstruction.Distance)
+            bool insideRange = Mathf.DeltaAngle(point.Angle, obstruction.Start) < 0f && Mathf.DeltaAngle(point.Angle, obstruction.End) > 0f;
+            bool notSelf = obstruction.Points.Smallest != point && obstruction.Points.Biggest != point;
+            if (insideRange && distance > obstruction.Distance && notSelf)
                 return true;
         }
 
@@ -149,17 +154,17 @@ public class VisibilityMeshCreator : MonoBehaviour
 
         if (small)
         {
-            foreach (RimPoints smallest in rimPoints.OrderBy(r => r.Smallest.OnAngle))
+            foreach (RimPoints smallest in rimPoints.OrderBy(r => r.Smallest.Angle))
             {
-                if (smallest.Smallest.OnAngle > angle)
+                if (smallest.Smallest.Angle > angle)
                     return smallest;
             }
         }
         else
         {
-            foreach (RimPoints biggest in rimPoints.OrderBy(r => r.Biggest.OnAngle))
+            foreach (RimPoints biggest in rimPoints.OrderBy(r => r.Biggest.Angle))
             {
-                if (biggest.Biggest.OnAngle > angle)
+                if (biggest.Biggest.Angle > angle)
                     return biggest;
             }
         }
@@ -279,8 +284,8 @@ public class Obstruction
     public Obstruction(RimPoints clusterPoints)
     {
         Points = clusterPoints;
-        Start = clusterPoints.Smallest.OnAngle;
-        End = clusterPoints.Biggest.OnAngle;
-        Distance = (clusterPoints.Smallest.OnPoint.magnitude + clusterPoints.Biggest.OnPoint.magnitude) / 2f;
+        Start = clusterPoints.Smallest.Angle - 0.5f;
+        End = clusterPoints.Biggest.Angle + 0.5f;
+        Distance = (clusterPoints.Smallest.Point.magnitude + clusterPoints.Biggest.Point.magnitude) / 2f;
     }
 }

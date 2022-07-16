@@ -106,7 +106,7 @@ namespace ConcaveHull
         public RimPoints FindRimPoints(Vector2 position)
         {
             Vector2 closest = GetClosestPointOnHull(position);
-            float startAngle = Vector2Util.GetAngleFromTo(position, closest);
+            float startAngle = Vector2Util.GetAngleFromTo(position, closest) * Mathf.Rad2Deg;
             int startPoinIndex = 0;
 
             for (int i = 0; i < HullPoints.Count; i++)
@@ -119,14 +119,14 @@ namespace ConcaveHull
             IterateToFindRimPoint(position, startPoinIndex, startAngle, rimPoints, 1);
             IterateToFindRimPoint(position, startPoinIndex, startAngle, rimPoints, -1);
 
-            Gizmos.color = Color.red;
-            Gizmos.DrawSphere(closest.ToV3(), 0.5f);
-
             if (rimPoints.Smallest != null)
-                Gizmos.DrawLine(position.ToV3(), (position + rimPoints.Smallest.OnPoint).ToV3());
+                Debug.DrawLine(closest.ToV3(), (position + rimPoints.Smallest.OnPoint).ToV3(), Color.green);
 
             if (rimPoints.Biggest != null)
-                Gizmos.DrawLine(position.ToV3(), (position + rimPoints.Biggest.OnPoint).ToV3());
+                Debug.DrawLine(closest.ToV3(), (position + rimPoints.Biggest.OnPoint).ToV3(), Color.red);
+
+            if (rimPoints.Smallest != null && rimPoints.Biggest != null)
+                Debug.DrawLine((position + rimPoints.Biggest.OnPoint).ToV3(), (position + rimPoints.Smallest.OnPoint).ToV3(), Color.blue);
 
             return rimPoints;
         }
@@ -140,7 +140,7 @@ namespace ConcaveHull
             {
                 Vector2 point = HullPoints[(startPoint + i * iDir).Modulo(HullPoints.Count)];
 
-                float angle = Vector2Util.GetAngleFromTo(position, point);
+                float angle = Vector2Util.GetAngleFromTo(position, point) * Mathf.Rad2Deg;
                 float angleDifference = Mathf.DeltaAngle(angle, startAngle);
                 float biggestAngleDifference = Mathf.DeltaAngle(potentialRimPoint.OnAngle, startAngle);
 

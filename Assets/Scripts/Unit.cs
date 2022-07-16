@@ -13,10 +13,7 @@ public class Unit : MonoBehaviour
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
         if (Input.GetMouseButtonDown(0) && Physics.Raycast(ray, out hit, Mathf.Infinity, LayerMask.GetMask("Terrain")))
-        {
-            Debug.Log("hit");
             target = hit.point.ToV2();
-        }
 
         Vector2 newPos = Vector2.MoveTowards(transform.position.ToV2(), target, Time.deltaTime * walkSpeed);
 

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
 using UnityEngine;
 
 namespace ConcaveHull
@@ -102,6 +103,71 @@ namespace ConcaveHull
             return HullConcaveEdges;
         }
 
+        public RimPoints FindRimPoints(Vector2 position)
+        {
+            Vector2 closest = GetClosestPointOnHull(position);
+            float startAngle = Vector2Util.GetAngleFromTo(position, closest);
+            int startPoinIndex = 0;
+
+            for (int i = 0; i < HullPoints.Count; i++)
+                if (closest == HullPoints[i])
+                    startPoinIndex = i;
+            
+
+            RimPoints rimPoints = new RimPoints();
+
+            IterateToFindRimPoint(position, startPoinIndex, startAngle, rimPoints, 1);
+            IterateToFindRimPoint(position, startPoinIndex, startAngle, rimPoints, -1);
+
+            Gizmos.color = Color.red;
+            Gizmos.DrawSphere(closest.ToV3(), 0.5f);
+
+            if (rimPoints.Smallest != null)
+                Gizmos.DrawLine(position.ToV3(), (position + rimPoints.Smallest.OnPoint).ToV3());
+
+            if (rimPoints.Biggest != null)
+                Gizmos.DrawLine(position.ToV3(), (position + rimPoints.Biggest.OnPoint).ToV3());
+
+            return rimPoints;
+        }
+
+        private void IterateToFindRimPoint(Vector2 position, int startPoint, float startAngle, RimPoints rimPoints, int iDir)
+        {
+            RimPoint potentialRimPoint = new RimPoint();
+            potentialRimPoint.OnAngle = startAngle;
+
+            for (int i = 1; i < HullPoints.Count; i++)
+            {
+                Vector2 point = HullPoints[(startPoint + i * iDir).Modulo(HullPoints.Count)];
+
+                float angle = Vector2Util.GetAngleFromTo(position, point);
+                float angleDifference = Mathf.DeltaAngle(angle, startAngle);
+                float biggestAngleDifference = Mathf.DeltaAngle(potentialRimPoint.OnAngle, startAngle);
+
+                if (iDir == 1 && angleDifference < biggestAngleDifference
+                    || iDir == -1 && angleDifference > biggestAngleDifference)
+                {
+                    potentialRimPoint.OnAngle = angle;
+                    potentialRimPoint.OnPoint = point - position;
+                    potentialRimPoint.OffAngle = angle + iDir;
+
+                }
+            }
+
+            if (iDir > 0)
+                rimPoints.Biggest = potentialRimPoint;
+            else
+                rimPoints.Smallest = potentialRimPoint;
+
+            if (potentialRimPoint.OnPoint != Vector2.zero)
+                rimPoints.Empty = false;
+        }
+
+        private Vector2 GetClosestPointOnHull(Vector2 point)
+        {
+            return HullPoints.OrderBy(p => Vector2.Distance(p, point)).FirstOrDefault();
+        }
+
         public void GizmoDrawHull()
         {
             Gizmos.color = Color.red;
@@ -152,5 +218,18 @@ namespace ConcaveHull
         public Vector2 Min, Max;
         public Vector2 MinMax => new Vector2(Min.x, Max.y);
         public Vector2 MaxMin => new Vector2(Max.x, Min.y);
+    }
+
+    [System.Serializable]
+    public class RimPoint
+    {
+        public float OnAngle, OffAngle;
+        public Vector2 OnPoint, OffPoint;
+    }
+    [System.Serializable]
+    public class RimPoints
+    {
+        public bool Empty = true;
+        public RimPoint Smallest, Biggest;
     }
 }

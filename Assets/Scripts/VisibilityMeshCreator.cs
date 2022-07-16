@@ -13,70 +13,107 @@ public class VisibilityMeshCreator : MonoBehaviour
     [SerializeField] float innerRadius;
     [SerializeField] float outerRadius;
     [SerializeField] float falloff;
+    [SerializeField, Range(4, 512)] int raycastAmount = 12;
     [SerializeField] TreeClusterCreator treeClusters;
 
     [SerializeField, ReadOnly] List<TreeCluster> clustersInRadius;
+    [SerializeField, ReadOnly] List<float> basePointAngles;
+    [SerializeField, ReadOnly] List<float> clusterRimPointAngles;
 
     // Update is called once per frame
     void Update()
     {
-        clustersInRadius = treeClusters.GetClustersInsideRange(transform.position.ToV2(), innerRadius + outerRadius);
 
-        int raycastAmount = 128;
-        int raycastSize = 10;
-
-        List<Vector3> viewAreaPoints = new List<Vector3>();
-
-        for (int i = 0; i < raycastAmount; i++)
-        {
-            float theta = i * 2 * Mathf.PI / raycastAmount;
-            float x = Mathf.Sin(theta) * innerRadius;
-            float y = Mathf.Cos(theta) * innerRadius;
-
-
-            Vector3 p = transform.position + new Vector3(x, raycastSize, y);
-
-            Ray ray = new Ray(p, Vector3.down);
-
-            RaycastHit hit;
-            if (Physics.Raycast(ray, out hit, raycastSize, LayerMask.GetMask("Terrain")))
-            {
-                p = hit.point;
-            }
-            else
-            {
-                p = new Vector3(p.x, p.y - raycastSize, p.z);
-
-                Vector2 startP = transform.position.ToV2();
-                float r = outerRadius + innerRadius;
-                Vector2 targetP = transform.position.ToV2() + new Vector2(x, y).normalized * r;
-
-
-                V2Line line = new V2Line(startP, targetP);
-
-                Intersection intersection = GetClosestIntersectionPoint(line);
-
-                if (intersection.DoesIntersect)
-                    r = intersection.Distance;
-
-                p = transform.position + new Vector3(x, 0, y).normalized * r + r * falloff * Vector3.down;
-            }
-
-            p -= transform.position;
-            viewAreaPoints.Add(p);
-        }
-
-        CreatePositiveMesh(viewAreaPoints.ToArray());
     }
 
     private void OnDrawGizmos()
     {
         Gizmos.DrawWireSphere(transform.position, innerRadius);
+        Gizmos.DrawWireSphere(transform.position, innerRadius + outerRadius);
+
+        //upate clusters
         foreach (TreeCluster cluster in clustersInRadius)
         {
             cluster.Hull.GizmoDrawBounds();
         }
+        clustersInRadius = treeClusters.GetClustersInsideRange(transform.position.ToV2(), innerRadius + outerRadius);
 
+        //base points
+        List<Vector3> basePoints = new List<Vector3>();
+        for (int i = 0; i < raycastAmount; i++)
+        {
+            float angleToCheck = ((i * 2 * Mathf.PI * Mathf.Rad2Deg / raycastAmount) - 179f);
+            CheckForPointAtAngle(basePoints, angleToCheck);
+        }
+
+        //rim points
+        List<RimPoints> rimPoints = new List<RimPoints>();
+        foreach (TreeCluster cluster in clustersInRadius)
+        {
+            RimPoints clusterPoints = cluster.Hull.FindRimPoints(transform.position.ToV2());
+            if (clusterPoints != null) rimPoints.Add(clusterPoints);
+        }
+
+        rimPoints = rimPoints.OrderBy(p => GetAngleFromTo(Vector2.zero, p.Smallest.OnPoint)).ToList();
+
+        //debug
+        basePointAngles.Clear();
+        clusterRimPointAngles.Clear();
+
+        foreach (Vector3 point in basePoints)
+        {
+            basePointAngles.Add(GetAngleFromTo(Vector2.zero, point.ToV2()) * Mathf.Rad2Deg);
+        }
+
+        foreach (RimPoints point in rimPoints)
+        {
+            clusterRimPointAngles.Add(point.Smallest.OnAngle * Mathf.Rad2Deg);
+            clusterRimPointAngles.Add(point.Biggest.OnAngle * Mathf.Rad2Deg);
+        }
+
+        //create mesh
+        CreatePositiveMesh(basePoints.ToArray());
+    }
+
+    private void CheckForPointAtAngle(List<Vector3> basePoints, float angleToCheck)
+    {
+        const int raycastSize = 10;
+
+        float theta = angleToCheck * Mathf.Deg2Rad;
+
+        float x = Mathf.Sin(theta) * innerRadius;
+        float y = Mathf.Cos(theta) * innerRadius;
+
+
+        Vector3 p = transform.position + new Vector3(x, raycastSize, y);
+
+        Ray ray = new Ray(p, Vector3.down);
+
+        RaycastHit hit;
+        if (Physics.Raycast(ray, out hit, raycastSize, LayerMask.GetMask("Terrain")))
+        {
+            p = hit.point;
+        }
+        else
+        {
+            p = new Vector3(p.x, p.y - raycastSize, p.z);
+
+            Vector2 startP = transform.position.ToV2();
+            float r = outerRadius + innerRadius;
+            Vector2 targetP = transform.position.ToV2() + new Vector2(x, y).normalized * r;
+
+            V2Line line = new V2Line(startP, targetP);
+
+            Intersection intersection = GetClosestIntersectionPoint(line);
+            if (intersection.DoesIntersect) r = intersection.Distance;
+
+            p = transform.position + new Vector3(x, 0, y).normalized * r + r * falloff * Vector3.down;
+        }
+
+        Gizmos.DrawLine(transform.position, p);
+
+        p -= transform.position;
+        basePoints.Add(p);
     }
 
     private void CreatePositiveMesh(Vector3[] points)
@@ -89,27 +126,23 @@ public class VisibilityMeshCreator : MonoBehaviour
 
         newVertices.Add(Vector3.zero);
 
-        for (int i = 0; i < points.Length; i++)
+        for (int i = 0; i <= points.Length; i++)
         {
             int index = i;
 
-            newVertices.Add(new Vector3(points[i].x, points[i].y, points[i].z));
+            if (index < points.Length)
+                newVertices.Add(new Vector3(points[i].x, points[i].y, points[i].z));
 
-            if (index > 1 && index < points.Length)
+            if (index > 1)
             {
                 newTriangles.Add(0);
                 newTriangles.Add(index - 1);
                 newTriangles.Add(index);
             }
-
-            if (i > 0)
-            {
-                Debug.DrawLine(transform.position + new Vector3(points[i - 1].x, 0, points[i - 1].y), transform.position + new Vector3(points[i].x, 0, points[i].y));
-            }
         }
 
         newTriangles.Add(0);
-        newTriangles.Add(points.Length - 1);
+        newTriangles.Add(points.Length);
         newTriangles.Add(1);
 
         mesh.Clear();

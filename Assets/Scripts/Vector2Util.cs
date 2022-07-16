@@ -140,6 +140,17 @@ public static class Vector2Util
         };
     }
 
+    public static int Modulo(this int a, int b)
+    {
+        while (a < 0) a += b;
+        return a % b;
+    }
+    public static float GetAngleFromTo(Vector2 from, Vector2 to)
+    {
+        Vector2 dir = (to - from).normalized;
+        return Mathf.Atan2(dir.x, dir.y);
+    }
+
     public static Vector2 ToV2(this Vector3 vector3)
     {
         return new Vector2(vector3.x, vector3.z);

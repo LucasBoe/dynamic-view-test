@@ -215,14 +215,14 @@ Mesh:
   m_SubMeshes:
   - serializedVersion: 2
     firstByte: 0
-    indexCount: 93
+    indexCount: 36
     topology: 0
     baseVertex: 0
     firstVertex: 0
-    vertexCount: 32
+    vertexCount: 13
     localAABB:
-      m_Center: {x: -0.19215393, y: -3, z: 0}
-      m_Extent: {x: 19.807846, y: 3, z: 20}
+      m_Center: {x: -1.4268036, y: -3, z: 0}
+      m_Extent: {x: 18.570145, y: 3, z: 19.996948}
   m_Shapes:
     vertices: []
     shapes: []
@@ -239,10 +239,10 @@ Mesh:
   m_KeepVertices: 1
   m_KeepIndices: 1
   m_IndexFormat: 0
-  m_IndexBuffer: 00000100020000000200030000000400010000000300050000000600040000000500070000000800060000000700090000000a000800000009000b0000000c000a0000000b000d0000000e000c0000000d000f00000010000e0000000f00110000001200100000001100130000001400120000001300150000001600140000001500170000001800160000001700190000001a001800000019001b0000001c001a0000001b001d0000001e001c0000001d001f0000001f001e00
+  m_IndexBuffer: 00000100020000000200030000000400010000000300050000000600040000000500070000000800060000000700090000000a000800000009000b0000000c000a0000000b000c00
   m_VertexData:
     serializedVersion: 3
-    m_VertexCount: 32
+    m_VertexCount: 13
     m_Channels:
     - stream: 0
       offset: 0
@@ -300,8 +300,8 @@ Mesh:
       offset: 0
       format: 0
       dimension: 0
-    m_DataSize: 384
-    _typelessdata: 000000000000000000000000000000000000c0c00000a04180eb6a40b49fb4c0b0a09341c0eaf4400000c0c018d29341e0eaf4c00000c0c018d29341006a0541521590c010ab474150c831c10000c0c0000985414070fe40f0e557c04070fe40304662c10000c0c03046624100bffc40806236c020e1a840000985c10000c0c050c8314120bc1041d8fd3bc0c0cd6f4018d293c10000c0c0e0eaf440a0bf2241c41f47c0807d0140f8ec9cc10000c0c040b7794000252b41a05f4dc0000000000000a0c10000c0c000000000f0ec9c410000c0c040b779c0f8ec9cc10000c0c040b779c020d293410000c0c0e0eaf4c020d293c10000c0c0c0eaf4c0000985410000c0c050c831c1000985c10000c0c050c831c1404662410000c0c0304662c1304662c10000c0c0304662c140c831410000c0c0000985c150c831c10000c0c0000985c1c0eaf4400000c0c020d293c1e0eaf4c00000c0c018d293c100b779400000c0c0f8ec9cc140b779c00000c0c0f8ec9cc1000000000000c0c00000a0c1
+    m_DataSize: 156
+    _typelessdata: 00000000000000000000000000b6b2be0000c0c0c0f99fc1f0cf24c10000c0c0902589c170f08bc10000c0c0a0231bc1a0231b410000c0c070f08bc1c0f99fc10000c0c000b6b23e902589410000c0c0f0cf24c1902589c10000c0c0f0cf244160e72d416cb750c0004442bea0231bc10000c0c070f08b4160e6034148f834c0003a924000b6b23e0000c0c0c0f99f41e0cf24410000c0c090258941
   m_CompressedMesh:
     m_Vertices:
       m_NumItems: 0
@@ -355,8 +355,8 @@ Mesh:
       m_BitSize: 0
     m_UVInfo: 0
   m_LocalAABB:
-    m_Center: {x: -0.19215393, y: -3, z: 0}
-    m_Extent: {x: 19.807846, y: 3, z: 20}
+    m_Center: {x: -1.4268036, y: -3, z: 0}
+    m_Extent: {x: 18.570145, y: 3, z: 19.996948}
   m_MeshUsageFlags: 0
   m_BakedConvexCollisionMesh: 
   m_BakedTriangleCollisionMesh: 
@@ -3114,6 +3114,7 @@ MonoBehaviour:
       Bounds:
         Min: {x: 270.7159, y: 219.09315}
         Max: {x: 278.02798, y: 227.98682}
+    Center: {x: 0, y: 0}
   - Trees:
     - {fileID: 1872895104}
     - {fileID: 855362141}
@@ -3164,6 +3165,7 @@ MonoBehaviour:
       Bounds:
         Min: {x: 262.6191, y: 207.80954}
         Max: {x: 272.28098, y: 221.61485}
+    Center: {x: 0, y: 0}
   - Trees:
     - {fileID: 633259819}
     - {fileID: 1427474207}
@@ -3183,6 +3185,7 @@ MonoBehaviour:
       Bounds:
         Min: {x: 257.02994, y: 226.0551}
         Max: {x: 261.06015, y: 230.77847}
+    Center: {x: 0, y: 0}
 --- !u!1001 &977899032
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -7011,6 +7014,7 @@ MonoBehaviour:
   innerRadius: 8
   outerRadius: 12
   falloff: 0.3
+  raycastAmount: 12
   treeClusters: {fileID: 935317404}
   clustersInRadius:
   - Trees:
@@ -7044,6 +7048,7 @@ MonoBehaviour:
       Bounds:
         Min: {x: 270.7159, y: 219.09315}
         Max: {x: 278.02798, y: 227.98682}
+    Center: {x: 0, y: 0}
   - Trees:
     - {fileID: 1872895104}
     - {fileID: 855362141}
@@ -7094,6 +7099,7 @@ MonoBehaviour:
       Bounds:
         Min: {x: 262.6191, y: 207.80954}
         Max: {x: 272.28098, y: 221.61485}
+    Center: {x: 0, y: 0}
   - Trees:
     - {fileID: 633259819}
     - {fileID: 1427474207}
@@ -7113,6 +7119,27 @@ MonoBehaviour:
       Bounds:
         Min: {x: 257.02994, y: 226.0551}
         Max: {x: 261.06015, y: 230.77847}
+    Center: {x: 0, y: 0}
+  basePointAngles:
+  - -179.00002
+  - -148.99998
+  - -119.00001
+  - -89.00001
+  - -58.99998
+  - -29.000004
+  - 0.9999908
+  - 30.99998
+  - 61.00001
+  - 90.99997
+  - 121.00002
+  - 151
+  clusterRimPointAngles:
+  - 4.7783594
+  - 16.722134
+  - 33.370598
+  - 92.65902
+  - 40.7313
+  - 61.234177
 --- !u!4 &1745338512
 Transform:
   m_ObjectHideFlags: 0

@@ -65,6 +65,7 @@ public class TreeClusterCreator : MonoBehaviour
 
         foreach (TreeCluster cluster in clusters)
         {
+            cluster.CalculatedCenterPoint();
             cluster.Hull = new Hull();
             cluster.Hull.SetConcaveHull(cluster.GetTreeNodes(), concavity, scaleFactor);
         }
@@ -135,6 +136,17 @@ public class TreeCluster
 {
     public List<Transform> Trees = new List<Transform>();
     public Hull Hull;
+    public Vector2 Center;
+
+    internal void CalculatedCenterPoint()
+    {
+        for (int i = 0; i < Trees.Count; i++)
+        {
+            Center += Trees[i].position.ToV2();
+        }
+
+        Center /= Trees.Count;
+    }
 
     internal List<Node> GetTreeNodes()
     {

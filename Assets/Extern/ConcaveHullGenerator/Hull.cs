@@ -230,5 +230,6 @@ namespace ConcaveHull
     {
         public bool Empty = true;
         public RimPoint Smallest, Biggest;
+        public int ClusterIndex;
     }
 }

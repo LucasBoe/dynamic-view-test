@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
 using UnityEngine;
 using static Vector2Util;
 
@@ -23,7 +24,6 @@ public class VisibilityMeshCreator : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        //upate clusters
         foreach (TreeCluster cluster in clustersInRadius)
         {
             cluster.Hull.GizmoDrawBounds();
@@ -39,14 +39,19 @@ public class VisibilityMeshCreator : MonoBehaviour
         List<RimPoints> rimPoints = new List<RimPoints>();
         List<Obstruction> obstructions = new List<Obstruction>();
 
+        int counter = 0;
+
         foreach (TreeCluster cluster in clustersInRadius)
         {
             RimPoints clusterPoints = cluster.Hull.FindRimPoints(transform.position.ToV2());
             if (clusterPoints != null)
             {
+                clusterPoints.ClusterIndex = counter;
                 rimPoints.Add(clusterPoints);
-                obstructions.Add(new Obstruction(clusterPoints));
+                obstructions.Add(new Obstruction(clusterPoints, counter));
             }
+
+            counter++;
         }
 
         List<RimPoints> openPoints = rimPoints.OrderBy(p => GetAngleFromTo(Vector2.zero, p.Smallest.Point)).ToList();
@@ -80,11 +85,16 @@ public class VisibilityMeshCreator : MonoBehaviour
             RimPoints nextToOpen = GetNext(openPoints, angle, small: true);
             RimPoints nextToClose = GetNext(closePoints, angle, small: false);
 
+
             float nextOpenAngle = nextToOpen == null ? float.MaxValue : nextToOpen.Smallest.Angle;
             float nextCloseAngle = nextToClose == null ? float.MaxValue : nextToClose.Biggest.Angle;
 
+            const float angleOffset = 1f;
+
             bool nextIsOpen = (nextOpenAngle < nextCloseAngle) && nextToOpen != null;
             bool nextIsClose = (nextCloseAngle < nextOpenAngle) && nextToClose != null;
+
+            //Debug.Log("current: " + angle + " next: " + (nextIsOpen ? nextOpenAngle : nextCloseAngle));
 
             if ((!nextIsOpen && !nextIsClose) || !nextIsClose && Mathf.Abs(Mathf.DeltaAngle(angle, nextOpenAngle)) > fillerSize)
             {
@@ -94,20 +104,37 @@ public class VisibilityMeshCreator : MonoBehaviour
             else
             {
 
+                GUIStyle styleB = new GUIStyle();
+                styleB.normal.textColor = Color.blue;
+
+                GUIStyle styleR = new GUIStyle();
+                styleR.normal.textColor = Color.red;
+
+                GUIStyle style = new GUIStyle();
+                style.normal.textColor = new Color[] { Color.magenta, Color.blue, Color.green, Color.red, Color.yellow }[(nextIsOpen ? nextToOpen.ClusterIndex : nextToClose.ClusterIndex) % 5];
+
                 if (nextIsOpen)
                 {
                     RimPoint next = nextToOpen.Smallest;
 
                     if (!IsObstructed(obstructions, next))
                     {
-                        meshPoints.Add(CheckForPointAtAngle((next.Angle) - 0.1f));
-                        Debug.DrawLine(transform.position + meshPoints.Last(), transform.position, Color.cyan);
-
                         float distance = Mathf.Min(next.Point.magnitude, innerRadius + outerRadius);
-                        meshPoints.Add(Get3DPointFromLength(next.Angle, distance) - transform.position);
-                    }
 
-                    angle = next.Angle + 0.5f;
+                        meshPoints.Add(CheckForPointAtAngle((next.Angle) - angleOffset));
+                        //Handles.Label(transform.position + meshPoints.Last(), (next.Angle - angleOffset).ToString(), style);
+                        meshPoints.Add(Get3DPointFromLength((next.Angle), distance) - transform.position);
+                        //Handles.Label(transform.position + meshPoints.Last(), next.Angle.ToString(), style);
+
+                    }
+                    //else
+                    //{
+                    //    Vector3 p = Get3DPointFromLength(next.Angle, innerRadius + outerRadius) - transform.position;
+                    //    Debug.DrawLine(transform.position + p, transform.position, Color.red);
+                    //    Handles.Label(transform.position + p, "\n" + next.Angle.ToString(), styleR);
+                    //}
+
+                    angle = next.Angle;
                     toClose.Add(nextToOpen);
                 }
                 else if (nextIsClose)
@@ -116,12 +143,22 @@ public class VisibilityMeshCreator : MonoBehaviour
 
                     if (!IsObstructed(obstructions, next))
                     {
+
                         float distance = Mathf.Min(next.Point.magnitude, innerRadius + outerRadius);
+
                         meshPoints.Add(Get3DPointFromLength(next.Angle, distance) - transform.position);
-                        meshPoints.Add(CheckForPointAtAngle((next.Angle) + 0.1f));
-                        Debug.DrawLine(transform.position + meshPoints.Last(), transform.position, Color.blue);
+                        //Handles.Label(transform.position + meshPoints.Last(), (next.Angle).ToString(), style);
+                        meshPoints.Add(CheckForPointAtAngle((next.Angle) + angleOffset));
+                        //Handles.Label(transform.position + meshPoints.Last(), (next.Angle + angleOffset).ToString(), style);
+
                     }
-                    angle = next.Angle + 0.5f;
+                    //else
+                    //{
+                    //    Vector3 p = Get3DPointFromLength(next.Angle, innerRadius + outerRadius) - transform.position;
+                    //    Debug.DrawLine(transform.position + p, transform.position, Color.red);
+                    //    Handles.Label(transform.position + p, "\n" + next.Angle.ToString(), styleR);
+                    //}
+                    angle = next.Angle;
                     toClose.Remove(nextToClose);
 
                 }
@@ -129,6 +166,20 @@ public class VisibilityMeshCreator : MonoBehaviour
                 toClose = toClose.OrderBy(c => c.Biggest.Angle).ToList();
             }
         }
+
+        meshPoints = meshPoints.OrderBy(p => Mathf.Atan2(p.x, p.z) * Mathf.Rad2Deg).ToList();
+
+        string str = "";
+
+        foreach (Vector3 meshPoint in meshPoints)
+        {
+            Vector3 p = (meshPoint).normalized;
+            float a = Mathf.Atan2(p.x, p.z) * Mathf.Rad2Deg;
+            float d = meshPoint.magnitude;
+            str += a + " - " + d + "\n";
+        }
+
+        //Debug.Log(str);
 
         //create mesh
         CreatePositiveMesh(meshPoints.ToArray());
@@ -142,7 +193,10 @@ public class VisibilityMeshCreator : MonoBehaviour
             bool insideRange = Mathf.DeltaAngle(point.Angle, obstruction.Start) < 0f && Mathf.DeltaAngle(point.Angle, obstruction.End) > 0f;
             bool notSelf = obstruction.Points.Smallest != point && obstruction.Points.Biggest != point;
             if (insideRange && distance > obstruction.Distance && notSelf)
+            {
+                //Debug.Log(obstruction.Index + " is obstructing " + point.Angle + " with min: " + obstruction.Start + " and max: " + obstruction.End);
                 return true;
+            }
         }
 
         return false;
@@ -213,7 +267,20 @@ public class VisibilityMeshCreator : MonoBehaviour
         float x = Mathf.Sin(angleToCheck * Mathf.Deg2Rad) * innerRadius;
         float y = Mathf.Cos(angleToCheck * Mathf.Deg2Rad) * innerRadius;
 
-        return transform.position + new Vector3(x, 0, y).normalized * length + length * falloff * Vector3.down;
+        int height = 100;
+
+        Vector3 p = transform.position + new Vector3(x, 0, y).normalized * length;
+
+        Ray ray = new Ray(p + Vector3.up * height / 2f, Vector3.down);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit, height, LayerMask.GetMask("Terrain")))
+        {
+            return hit.point;
+        }
+
+        //return Vector3.zero;
+        return p + length * falloff * Vector3.down;
     }
 
     private void CreatePositiveMesh(Vector3[] points)
@@ -277,15 +344,18 @@ public class VisibilityMeshCreator : MonoBehaviour
 
 public class Obstruction
 {
+    public int Index;
     public float Start, End;
     public float Distance;
     public RimPoints Points;
+    const float ANGLE_ADDITION = 0.0f;
 
-    public Obstruction(RimPoints clusterPoints)
+    public Obstruction(RimPoints clusterPoints, int index)
     {
+        Index = index;
         Points = clusterPoints;
-        Start = clusterPoints.Smallest.Angle - 0.5f;
-        End = clusterPoints.Biggest.Angle + 0.5f;
+        Start = clusterPoints.Smallest.Angle - ANGLE_ADDITION;
+        End = clusterPoints.Biggest.Angle + ANGLE_ADDITION;
         Distance = (clusterPoints.Smallest.Point.magnitude + clusterPoints.Biggest.Point.magnitude) / 2f;
     }
 }

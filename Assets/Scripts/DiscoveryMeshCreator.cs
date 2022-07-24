@@ -17,15 +17,18 @@ public class DiscoveryMeshCreator : MonoBehaviour
         int rad = radius / resolution;
         float rSquared = rad * rad;
 
+        Color color = Color.Lerp(Color.white, Color.gray, 1f);
+
         for (int u = x - rad; u < x + rad + 1; u++)
             for (int v = y - rad; v < y + rad + 1; v++)
                 if ((x - u) * (x - u) + (y - v) * (y - v) < rSquared)
-                    texture.SetPixel(u, v, Color.gray);
+                    texture.SetPixel(u, v, color);
 
         texture.Apply();
 
         Debug.Log("Discover x: " + x + " z: " + y);
 
+        GetComponent<MeshRenderer>().sharedMaterial.renderQueue = 4000;
         GetComponent<MeshRenderer>().sharedMaterial.mainTexture = texture;
     }
 

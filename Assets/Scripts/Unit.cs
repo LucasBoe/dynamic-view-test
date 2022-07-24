@@ -5,7 +5,7 @@ using UnityEngine;
 public class Unit : MonoBehaviour
 {
     Vector2 target;
-    private float walkSpeed = 3f;
+    [SerializeField] private float walkSpeed = 3f;
 
     // Update is called once per frame
     void Update()

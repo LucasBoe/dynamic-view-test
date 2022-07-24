@@ -78,7 +78,7 @@ public class VisibilityMeshCreator : MonoBehaviour
 
         int loopCount = 0;
 
-        while (loopCount < 100 && angle < 180f)
+        while (loopCount < 1000 && angle < 180f)
         {
             loopCount++;
 
@@ -267,20 +267,21 @@ public class VisibilityMeshCreator : MonoBehaviour
         float x = Mathf.Sin(angleToCheck * Mathf.Deg2Rad) * innerRadius;
         float y = Mathf.Cos(angleToCheck * Mathf.Deg2Rad) * innerRadius;
 
-        int height = 100;
+        Vector3 p = transform.position;
+        Vector3 dir = (new Vector3(x, 0, y).normalized + Vector3.down * falloff).normalized;
 
-        Vector3 p = transform.position + new Vector3(x, 0, y).normalized * length;
+        Debug.DrawLine(p, p + dir);
 
-        Ray ray = new Ray(p + Vector3.up * height / 2f, Vector3.down);
+        Ray ray = new Ray(p, dir);
         RaycastHit hit;
 
-        if (Physics.Raycast(ray, out hit, height, LayerMask.GetMask("Terrain")))
+        if (Physics.Raycast(ray, out hit, length, LayerMask.GetMask("Terrain")))
         {
             return hit.point;
         }
 
         //return Vector3.zero;
-        return p + length * falloff * Vector3.down;
+        return p + dir * length;
     }
 
     private void CreatePositiveMesh(Vector3[] points)

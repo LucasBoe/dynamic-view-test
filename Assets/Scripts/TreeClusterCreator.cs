@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using ConcaveHull;
+using Unity.EditorCoroutines.Editor;
 
 [ExecuteInEditMode]
 public class TreeClusterCreator : MonoBehaviour
@@ -11,13 +12,28 @@ public class TreeClusterCreator : MonoBehaviour
     [SerializeField] float treshhold;
     [SerializeField] int scaleFactor;
     [SerializeField] double concavity;
+
+    [SerializeField, ReadOnly] int treeCount;
+    [SerializeField, ReadOnly] int treesProcessed;
+
     [SerializeField, ReadOnly] List<TreeCluster> clusters = new List<TreeCluster>();
+
+    EditorCoroutine treeClusterCreationCoroutine;
 
     [Button]
     public void CreateClusters()
     {
-        StartCoroutine(ClusterRoutine());
+        EditorCoroutineUtility.StopCoroutine(treeClusterCreationCoroutine);
+        treeClusterCreationCoroutine = EditorCoroutineUtility.StartCoroutine(ClusterRoutine(), this);
     }
+
+    [Button]
+    public void Stop()
+    {
+        EditorCoroutineUtility.StopCoroutine(treeClusterCreationCoroutine);
+        Debug.Log("Stopped");
+    }
+
 
     IEnumerator ClusterRoutine()
     {
@@ -28,6 +44,8 @@ public class TreeClusterCreator : MonoBehaviour
             trees.Add(child);
         }
 
+        treeCount = trees.Count;
+
         List<Transform> unsortedTrees = new List<Transform>(trees);
         clusters = new List<TreeCluster>();
 
@@ -35,6 +53,8 @@ public class TreeClusterCreator : MonoBehaviour
         {
             Transform startTree = unsortedTrees[0];
             unsortedTrees.RemoveAt(0);
+
+            treesProcessed = treeCount - unsortedTrees.Count;
 
             bool partOfOtherCluster = false;
 
@@ -50,9 +70,12 @@ public class TreeClusterCreator : MonoBehaviour
                             cluster.Trees.Add(startTree);
                             break;
                         }
+                        else if (unsortedTrees.Count < 100)
+                            yield return null;
                     }
                 }
             }
+            yield return null;
 
             if (!partOfOtherCluster)
             {
@@ -61,13 +84,21 @@ public class TreeClusterCreator : MonoBehaviour
                 clusters.Add(newCluster);
             }
         }
+
         yield return null;
+
+        Debug.Log("FinishedClustering");
 
         foreach (TreeCluster cluster in clusters)
         {
             cluster.CalculatedCenterPoint();
             cluster.Hull = new Hull();
-            cluster.Hull.SetConcaveHull(cluster.GetTreeNodes(), concavity, scaleFactor);
+
+            List<Node> treeNodes = cluster.GetTreeNodes();
+            Debug.Log(treeNodes.Count);
+            cluster.Hull.SetConcaveHull(treeNodes, concavity, scaleFactor);
+
+            yield return null;
         }
     }
 

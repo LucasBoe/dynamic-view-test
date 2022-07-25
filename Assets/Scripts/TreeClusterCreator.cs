@@ -18,7 +18,7 @@ public class TreeClusterCreator : MonoBehaviour
 
     [SerializeField, ReadOnly] List<TreeCluster> clusters = new List<TreeCluster>();
 
-    EditorCoroutine treeClusterCreationCoroutine;
+    EditorCoroutine treeClusterCreationCoroutine, clusterHullRoutine;
 
     [Button]
     public void CreateClusters()
@@ -28,9 +28,17 @@ public class TreeClusterCreator : MonoBehaviour
     }
 
     [Button]
+    public void CreateHulls()
+    {
+        EditorCoroutineUtility.StopCoroutine(clusterHullRoutine);
+        clusterHullRoutine = EditorCoroutineUtility.StartCoroutine(HullRoutine(), this);
+    }
+
+    [Button]
     public void Stop()
     {
         EditorCoroutineUtility.StopCoroutine(treeClusterCreationCoroutine);
+        EditorCoroutineUtility.StopCoroutine(clusterHullRoutine);
         Debug.Log("Stopped");
     }
 
@@ -70,10 +78,11 @@ public class TreeClusterCreator : MonoBehaviour
                             cluster.Trees.Add(startTree);
                             break;
                         }
-                        else if (unsortedTrees.Count < 100)
-                            yield return null;
                     }
                 }
+
+                if (unsortedTrees.Count < 10)
+                    yield return null;
             }
             yield return null;
 
@@ -88,7 +97,11 @@ public class TreeClusterCreator : MonoBehaviour
         yield return null;
 
         Debug.Log("FinishedClustering");
+    }
 
+
+    IEnumerator HullRoutine()
+    {
         foreach (TreeCluster cluster in clusters)
         {
             cluster.CalculatedCenterPoint();
@@ -96,7 +109,9 @@ public class TreeClusterCreator : MonoBehaviour
 
             List<Node> treeNodes = cluster.GetTreeNodes();
             Debug.Log(treeNodes.Count);
-            cluster.Hull.SetConcaveHull(treeNodes, concavity, scaleFactor);
+
+            if (treeNodes.Count > 2)
+                yield return cluster.Hull.SetConcaveHull(treeNodes, concavity, scaleFactor);
 
             yield return null;
         }

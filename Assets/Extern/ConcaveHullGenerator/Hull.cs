@@ -1,5 +1,6 @@
 ﻿using Assets.src;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
@@ -45,7 +46,7 @@ namespace ConcaveHull
             }
         }
 
-        public List<Line> SetConcaveHull(List<Node> nodes, double concavity, int scaleFactor)
+        public IEnumerator SetConcaveHull(List<Node> nodes, double concavity, int scaleFactor)
         {
             Debug.Log($"nodes.Count = { nodes.Count }");
 
@@ -79,9 +80,14 @@ namespace ConcaveHull
                         HullConcaveEdges.AddRange(dividedLine);
                         HullConcaveEdges.RemoveAt(linePositionInHull); // Divided line no longer exists
                     }
+
+                    yield return null;
                 }
 
+
                 HullConcaveEdges = HullConcaveEdges.OrderByDescending(a => Line.getLength(a.nodes[0], a.nodes[1])).ToList();
+                Debug.Log(HullConcaveEdges.Count);
+                yield return null;
             } while (aLineWasDividedInTheIteration);
 
             Bounds.Min = new Vector2(float.MaxValue, float.MaxValue);
@@ -96,11 +102,11 @@ namespace ConcaveHull
                 Bounds.Max.y = Mathf.Max(Bounds.Max.y, line.SmoothRight.y, line.SmoothLeft.y);
                 Bounds.Min.x = Mathf.Min(Bounds.Min.x, line.SmoothRight.x, line.SmoothLeft.x);
                 Bounds.Min.y = Mathf.Min(Bounds.Min.y, line.SmoothRight.y, line.SmoothLeft.y);
+
+                yield return null;
             }
 
             HullPoints = sortVerticies(HullPoints);
-
-            return HullConcaveEdges;
         }
 
         public RimPoints FindRimPoints(Vector2 position)

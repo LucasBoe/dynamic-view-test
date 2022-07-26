@@ -21,6 +21,7 @@ public class VisibilityMeshCreator : MonoBehaviour
     [SerializeField, ReadOnly] List<TreeCluster> clustersInRadius;
     [SerializeField, ReadOnly] List<float> openAngles;
     [SerializeField, ReadOnly] List<float> closeAngles;
+    [SerializeField, ReadOnly] public float SmallestDistance;
 
     private void OnDrawGizmos()
     {
@@ -85,7 +86,6 @@ public class VisibilityMeshCreator : MonoBehaviour
             RimPoints nextToOpen = GetNext(openPoints, angle, small: true);
             RimPoints nextToClose = GetNext(closePoints, angle, small: false);
 
-
             float nextOpenAngle = nextToOpen == null ? float.MaxValue : nextToOpen.Smallest.Angle;
             float nextCloseAngle = nextToClose == null ? float.MaxValue : nextToClose.Biggest.Angle;
 
@@ -103,7 +103,6 @@ public class VisibilityMeshCreator : MonoBehaviour
             }
             else
             {
-
                 GUIStyle styleB = new GUIStyle();
                 styleB.normal.textColor = Color.blue;
 
@@ -171,12 +170,17 @@ public class VisibilityMeshCreator : MonoBehaviour
 
         string str = "";
 
+        SmallestDistance = float.MaxValue;
+
         foreach (Vector3 meshPoint in meshPoints)
         {
             Vector3 p = (meshPoint).normalized;
             float a = Mathf.Atan2(p.x, p.z) * Mathf.Rad2Deg;
             float d = meshPoint.magnitude;
             str += a + " - " + d + "\n";
+
+            if (d < SmallestDistance)
+                SmallestDistance = d;
         }
 
         //Debug.Log(str);

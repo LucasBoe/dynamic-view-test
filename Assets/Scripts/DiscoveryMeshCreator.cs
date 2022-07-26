@@ -26,8 +26,6 @@ public class DiscoveryMeshCreator : MonoBehaviour
 
         texture.Apply();
 
-        Debug.Log("Discover x: " + x + " z: " + y);
-
         GetComponent<MeshRenderer>().sharedMaterial.renderQueue = 4000;
         GetComponent<MeshRenderer>().sharedMaterial.mainTexture = texture;
     }

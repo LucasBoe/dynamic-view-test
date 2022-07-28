@@ -53,7 +53,7 @@ public class TreePlacerEditor : EditorWindow
         Texture2D tex = EditorGUIUtility.FindTexture("tree_icon");
 
         GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
-        buttonStyle.normal.background = treeBrushOn ?  MakeTex(10,10, Color.red) : null;
+        buttonStyle.normal.background = treeBrushOn ? MakeTex(10, 10, Color.red) : null;
         buttonStyle.normal.textColor = Color.red;
         if (GUILayout.Button(tex, buttonStyle)) treeBrushOn = !treeBrushOn;
         treeBrushSize = EditorGUILayout.Slider("Brush Size", treeBrushSize, 0, 50);
@@ -79,24 +79,27 @@ public class TreePlacerEditor : EditorWindow
 
     void OnSceneGUI(SceneView sceneView)
     {
+        int controlId = GUIUtility.GetControlID(FocusType.Passive);
         if (treeBrushOn)
         {
-            //Ray ray = sceneView.camera.ScreenPointToRay(Event.current.mousePosition);
             Event e = Event.current;
-            Debug.Log(e.mousePosition);
+            //Ray ray = sceneView.camera.ScreenPointToRay(Event.current.mousePosition);
             Ray ray = HandleUtility.GUIPointToWorldRay(e.mousePosition);
             RaycastHit hit;
-            if (Physics.Raycast(ray, out hit,float.MaxValue, LayerMask.GetMask("Terrain")))
+            if (Physics.Raycast(ray, out hit, float.MaxValue, LayerMask.GetMask("Terrain")))
             {
-                Handles.color = new Color(1,1,1,0.2f);
+                Handles.color = new Color(1, 1, 1, 0.2f);
                 Handles.DrawSolidDisc(hit.point, Vector3.up, treeBrushSize);
                 Handles.color = Color.white;
                 Handles.DrawWireDisc(hit.point, Vector3.up, treeBrushSize);
-                Handles.BeginGUI();
-                Handles.EndGUI();
+
+                if ((e.type== EventType.MouseDown || e.type == EventType.MouseUp || e.type == EventType.MouseDrag) && e.button == 0)
+                    GUIUtility.hotControl = controlId;
             }
             SceneView.RepaintAll();
         }
+        Handles.BeginGUI();
+        Handles.EndGUI();
     }
 
     private Texture2D MakeTex(int width, int height, Color col)

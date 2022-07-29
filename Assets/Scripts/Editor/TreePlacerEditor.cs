@@ -15,9 +15,6 @@ public class TreePlacerEditor : EditorWindow
     EditorCoroutine placeTreeCoroutine = null;
 
     int treeDistance = 3;
-    bool treeBrushOn = false;
-
-    float treeBrushSize = 10f;
 
     // Add menu item named "My Window" to the Window menu
     [MenuItem("Tools/Tree Placer")]
@@ -49,71 +46,6 @@ public class TreePlacerEditor : EditorWindow
         {
             EditorCoroutineUtility.StopCoroutine(placeTreeCoroutine);
         }
-
-        Texture2D tex = EditorGUIUtility.FindTexture("tree_icon");
-
-        GUIStyle buttonStyle = new GUIStyle(GUI.skin.button);
-        buttonStyle.normal.background = treeBrushOn ? MakeTex(10, 10, Color.red) : null;
-        buttonStyle.normal.textColor = Color.red;
-        if (GUILayout.Button(tex, buttonStyle)) treeBrushOn = !treeBrushOn;
-        treeBrushSize = EditorGUILayout.Slider("Brush Size", treeBrushSize, 0, 50);
-
-
-
-
-        if (GUILayout.Button(treeBrushOn.ToString()))
-        {
-            //
-        }
-    }
-    void OnFocus()
-    {
-        SceneView.duringSceneGui -= OnSceneGUI;
-        SceneView.duringSceneGui += OnSceneGUI;
-    }
-
-    void OnDestroy()
-    {
-        SceneView.duringSceneGui -= OnSceneGUI;
-    }
-
-    void OnSceneGUI(SceneView sceneView)
-    {
-        int controlId = GUIUtility.GetControlID(FocusType.Passive);
-        if (treeBrushOn)
-        {
-            Event e = Event.current;
-            //Ray ray = sceneView.camera.ScreenPointToRay(Event.current.mousePosition);
-            Ray ray = HandleUtility.GUIPointToWorldRay(e.mousePosition);
-            RaycastHit hit;
-            if (Physics.Raycast(ray, out hit, float.MaxValue, LayerMask.GetMask("Terrain")))
-            {
-                Handles.color = new Color(1, 1, 1, 0.2f);
-                Handles.DrawSolidDisc(hit.point, Vector3.up, treeBrushSize);
-                Handles.color = Color.white;
-                Handles.DrawWireDisc(hit.point, Vector3.up, treeBrushSize);
-
-                if ((e.type== EventType.MouseDown || e.type == EventType.MouseUp || e.type == EventType.MouseDrag) && e.button == 0)
-                    GUIUtility.hotControl = controlId;
-            }
-            SceneView.RepaintAll();
-        }
-        Handles.BeginGUI();
-        Handles.EndGUI();
-    }
-
-    private Texture2D MakeTex(int width, int height, Color col)
-    {
-        Color[] pix = new Color[width * height];
-
-        for (int i = 0; i < pix.Length; i++)
-            pix[i] = col;
-
-        Texture2D result = new Texture2D(width, height);
-        result.SetPixels(pix);
-        result.Apply();
-
-        return result;
     }
 
     private IEnumerator PlaceTreesbasedonMapRoutine()

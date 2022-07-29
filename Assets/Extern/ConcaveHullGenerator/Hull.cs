@@ -168,7 +168,7 @@ namespace ConcaveHull
                 rimPoints.Empty = false;
         }
 
-        private Vector2 GetClosestPointOnHull(Vector2 point)
+        public Vector2 GetClosestPointOnHull(Vector2 point)
         {
             return HullPoints.OrderBy(p => Vector2.Distance(p, point)).FirstOrDefault();
         }

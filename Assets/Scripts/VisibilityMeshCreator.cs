@@ -18,14 +18,14 @@ public class VisibilityMeshCreator : MonoBehaviour
     [SerializeField, Range(0.1f, 90f)] float fillerSize = 22.5f;
     [SerializeField] TreeClusterCreator treeClusters;
 
-    [SerializeField, ReadOnly] List<TreeCluster> clustersInRadius;
+    [SerializeField, ReadOnly] List<TreeClusterData> clustersInRadius;
     [SerializeField, ReadOnly] List<float> openAngles;
     [SerializeField, ReadOnly] List<float> closeAngles;
     [SerializeField, ReadOnly] public float SmallestDistance;
 
     private void OnDrawGizmos()
     {
-        foreach (TreeCluster cluster in clustersInRadius)
+        foreach (TreeClusterData cluster in clustersInRadius)
         {
             cluster.Hull.GizmoDrawBounds();
         }
@@ -42,7 +42,7 @@ public class VisibilityMeshCreator : MonoBehaviour
 
         int counter = 0;
 
-        foreach (TreeCluster cluster in clustersInRadius)
+        foreach (TreeClusterData cluster in clustersInRadius)
         {
             RimPoints clusterPoints = cluster.Hull.FindRimPoints(transform.position.ToV2());
             if (clusterPoints != null)
@@ -327,7 +327,7 @@ public class VisibilityMeshCreator : MonoBehaviour
     {
         List<Intersection> intersections = new List<Intersection>();
 
-        foreach (TreeCluster cluster in clustersInRadius)
+        foreach (TreeClusterData cluster in clustersInRadius)
         {
             List<Vector2> hull = cluster.Hull.HullPoints;
             for (int i = 0; i < hull.Count; i++)

@@ -16,7 +16,7 @@ public class TreeClusterCreator : MonoBehaviour
     [SerializeField, ReadOnly] int treeCount;
     [SerializeField, ReadOnly] int treesProcessed;
 
-    [SerializeField, ReadOnly] List<TreeCluster> clusters = new List<TreeCluster>();
+    [SerializeField, ReadOnly] List<TreeClusterData> clusters = new List<TreeClusterData>();
 
     EditorCoroutine treeClusterCreationCoroutine, clusterHullRoutine;
 
@@ -55,7 +55,7 @@ public class TreeClusterCreator : MonoBehaviour
         treeCount = trees.Count;
 
         List<Transform> unsortedTrees = new List<Transform>(trees);
-        clusters = new List<TreeCluster>();
+        clusters = new List<TreeClusterData>();
 
         while (unsortedTrees.Count > 0)
         {
@@ -66,7 +66,7 @@ public class TreeClusterCreator : MonoBehaviour
 
             bool partOfOtherCluster = false;
 
-            foreach (TreeCluster cluster in clusters)
+            foreach (TreeClusterData cluster in clusters)
             {
                 if (!partOfOtherCluster)
                 {
@@ -88,7 +88,7 @@ public class TreeClusterCreator : MonoBehaviour
 
             if (!partOfOtherCluster)
             {
-                TreeCluster newCluster = new TreeCluster();
+                TreeClusterData newCluster = new TreeClusterData();
                 newCluster.Trees.Add(startTree);
                 clusters.Add(newCluster);
             }
@@ -99,10 +99,29 @@ public class TreeClusterCreator : MonoBehaviour
         Debug.Log("FinishedClustering");
     }
 
+    public static TreeClusterData GetClosestClusterToPoint(List<TreeClusterData> clusters, Vector3 point, float maxDistance)
+    {
+        float distance = float.MaxValue;
+        TreeClusterData closest = null;
+        foreach (TreeClusterData cluster in clusters)
+        {
+            float d = Vector2.Distance(point.ToV2(), cluster.Hull.GetClosestPointOnHull(point.ToV2()));
+            if (d < distance)
+            {
+                distance = d;
+                closest = cluster;
+            }
+        }
+
+        if (distance < maxDistance)
+            return closest;
+
+        return null;
+    }
 
     IEnumerator HullRoutine()
     {
-        foreach (TreeCluster cluster in clusters)
+        foreach (TreeClusterData cluster in clusters)
         {
             cluster.CalculatedCenterPoint();
             cluster.Hull = new Hull();
@@ -117,11 +136,11 @@ public class TreeClusterCreator : MonoBehaviour
         }
     }
 
-    public List<TreeCluster> GetClustersInsideRange(Vector2 pos, float maxDistance)
+    public List<TreeClusterData> GetClustersInsideRange(Vector2 pos, float maxDistance)
     {
-        List<TreeCluster> clusters = new List<TreeCluster>();
+        List<TreeClusterData> clusters = new List<TreeClusterData>();
 
-        foreach (TreeCluster cluster in this.clusters)
+        foreach (TreeClusterData cluster in this.clusters)
         {
             float distance = Mathf.Min(
                 Vector2.Distance(pos, Vector2Util.GetClosestPointOnLineSegment(new Vector2Util.V2Line(cluster.Hull.Bounds.Min, cluster.Hull.Bounds.MinMax), pos)),
@@ -150,24 +169,24 @@ public class TreeClusterCreator : MonoBehaviour
 
     private void OnDrawGizmosSelected()
     {
-        for (int j = 0; j < clusters.Count; j++)
-        {
-            TreeCluster cluster = clusters[j];
-            NewRandomGizmoColorFromIndex(j);
-
-            for (int i = 0; i < cluster.Trees.Count; i++)
-            {
-                int ii = (i == 0 ? cluster.Trees.Count : i) - 1;
-                Gizmos.DrawLine(cluster.Trees[i].position, cluster.Trees[ii].position);
-            }
-
-            Hull hull = cluster.Hull;
-            if (hull != null && hull.HullPoints != null)
-            {
-                hull.GizmoDrawHull();
-                hull.GizmoDrawBounds();
-            }
-        }
+        //for (int j = 0; j < clusters.Count; j++)
+        //{
+        //    TreeCluster cluster = clusters[j];
+        //    NewRandomGizmoColorFromIndex(j);
+        //
+        //    for (int i = 0; i < cluster.Trees.Count; i++)
+        //    {
+        //        int ii = (i == 0 ? cluster.Trees.Count : i) - 1;
+        //        Gizmos.DrawLine(cluster.Trees[i].position, cluster.Trees[ii].position);
+        //    }
+        //
+        //    Hull hull = cluster.Hull;
+        //    if (hull != null && hull.HullPoints != null)
+        //    {
+        //        hull.GizmoDrawHull();
+        //        hull.GizmoDrawBounds();
+        //    }
+        //}
     }
 
     private static void NewRandomGizmoColorFromIndex(int index)
@@ -178,7 +197,7 @@ public class TreeClusterCreator : MonoBehaviour
 }
 
 [System.Serializable]
-public class TreeCluster
+public class TreeClusterData
 {
     public List<Transform> Trees = new List<Transform>();
     public Hull Hull;
